@@ -1,19 +1,29 @@
 import music_tag # pip install music-tag
 import os
+import re
 
 dry_run = False
-phrases_to_delete = [" (Explicit)", " [Explicit]", " (Album Version)"]
+
 errors = []
 
-path = "V:\\media\\audio\\Music"
+regex_list = [
+    re.compile(r"\s*[({\[]explicit[)}\]]\s*", re.IGNORECASE),
+    re.compile(r"\s*[({\[]\s*\d*\s*remaster[ed]*\s*[)}\]]\s*", re.IGNORECASE),
+    re.compile(r"\s*[({\[]\s*album\s+version\s*[)}\]]\s*", re.IGNORECASE)
+]
 
-for root,d_names,f_names in os.walk(path):
+
+path = r"C:\Users\Frnot\Downloads\Album"
+
+for root,d_names,f_names in os.walk(path, topdown=False):
+    # Check files
     for file in f_names:
-        #filename = root + "\\" + file
         filepath = os.path.join(root, file)
+        check_filename = False
 
         try:
-            f = music_tag.load_file(filepath)
+            ftag = music_tag.load_file(filepath)
+            save_tags = False
         except KeyboardInterrupt:
             print("Exiting")
             quit()
@@ -21,57 +31,73 @@ for root,d_names,f_names in os.walk(path):
             errors.append(filepath)
             continue
 
-        save = False
 
-        # artists
-        artist_items = f['artist'].values
+        # Check title / filename
+        original_title = title = ftag['title'].value
+        hits = 0
+        for regex in regex_list:
+            title, hit = regex.subn("", title)
+            hits += hit
+        if hits:
+            ftag['title'] = title
+            save_tags = True
+            check_filename = True
 
-        if len(artist_items) > 1:
-            new_artist_string = ", ".join(artist_items)
+        
+        # Check Album tag
+        original_album = album = ftag['album'].value
+        hits = 0
+        for regex in regex_list:
+            album, hit = regex.subn("", album)
+            hits += hit
+        if hits:
+            ftag['album'] = album
+            save_tags = True
 
-            print(f"New artist string: \"{new_artist_string}\"")
 
+        if save_tags:
+            print(f"Old title: \"{original_title}\" ||| New title: \"{title}\"")
             if not dry_run:
-                f['artist'] = new_artist_string
-                save = True
+                print(filepath)
+                ftag.save()
 
-
-        # title
-        old_title = title = f['title'].value
-
-        check_filename = False
-        for phrase in phrases_to_delete:
-            if phrase in title:
-                title = title.replace(phrase, "")
-                check_filename = True
-
-        if title != old_title:
-            print(f"Old title: \"{old_title}\" ||| New title: \"{title}\"")
-            if not dry_run:
-                f['title'] = title
-                save = True
-
-
-        # save
-        if save:
-            print(filepath)
-            f.save()
-
-
-        # filename
+        # if track title changed, check filename
         if check_filename:
-            old_filename = new_filename = file
+            old_filename = filename = file
 
-            for phrase in phrases_to_delete:
-                if phrase in new_filename:
-                    new_filename = new_filename.replace(phrase, "")
+            hits = 0
+            for regex in regex_list:
+                filename, hit = regex.subn("", filename)
+                hits += hit
 
-            if new_filename != old_filename:
-                print(f"Old filename: \"{old_filename}\" ||| New filename: \"{new_filename}\"")
+            if hits:
+                print(f"Old filename: \"{old_filename}\" ||| New filename: \"{filename}\"")
                 if not dry_run:
-                    new_filepath = os.path.join(root, new_filename)
+                    new_filepath = os.path.join(root, filename)
                     os.rename(filepath, new_filepath)
+
+    
+    # Check directory names
+    for dir in d_names:
+        old_dirname = dirname = dir
+        
+        hits = 0
+        for regex in regex_list:
+            dirname, hit = regex.subn("", dirname)
+            hits += hit
+
+        if hits:
+            print(f"Old directory name: \"{old_dirname}\" ||| New directory name: \"{dirname}\"")
+            if not dry_run:
+                old_dirpath = os.path.join(root, dir)
+                new_dirpath = os.path.join(root, dirname)
+                os.rename(old_dirpath, new_dirpath)
+
+
+
 
 print("Files that produced errors:")
 for error in errors:
     print(error)
+
+input('Press any key to continue')
