@@ -1,25 +1,25 @@
 import music_tag # pip install music-tag
 import os
 import re
+from time import time
 
 dry_run = False
-
 errors = []
 
 regex_list = [
-    re.compile(r"\s*[({\[]explicit[)}\]]\s*", re.IGNORECASE),
-    re.compile(r"\s*[({\[]\s*\d*\s*remaster[ed]*\s*[)}\]]\s*", re.IGNORECASE),
-    re.compile(r"\s*[({\[]\s*album\s+version\s*[)}\]]\s*", re.IGNORECASE)
+    re.compile(r"\s*[({\[]explicit[)}\]]", re.IGNORECASE),  # explicit
+    re.compile(r"\s*[({\[]\s*\d*\s*re[-]*master[ed]*\s*\d*\s*[)}\]]", re.IGNORECASE),  # remastered
+    re.compile(r"\s*[({\[]\s*album\s+version\s*[)}\]]", re.IGNORECASE)  # "album version"
 ]
 
 
-path = r"C:\Users\Frnot\Downloads\Album"
+path = r""
 
+start = time()
 for root,d_names,f_names in os.walk(path, topdown=False):
     # Check files
     for file in f_names:
         filepath = os.path.join(root, file)
-        check_filename = False
 
         try:
             ftag = music_tag.load_file(filepath)
@@ -38,10 +38,10 @@ for root,d_names,f_names in os.walk(path, topdown=False):
         for regex in regex_list:
             title, hit = regex.subn("", title)
             hits += hit
+        title = title.strip()
         if hits:
             ftag['title'] = title
             save_tags = True
-            check_filename = True
 
         
         # Check Album tag
@@ -50,6 +50,7 @@ for root,d_names,f_names in os.walk(path, topdown=False):
         for regex in regex_list:
             album, hit = regex.subn("", album)
             hits += hit
+        album = album.strip()
         if hits:
             ftag['album'] = album
             save_tags = True
@@ -61,24 +62,26 @@ for root,d_names,f_names in os.walk(path, topdown=False):
                 print(filepath)
                 ftag.save()
 
-        # if track title changed, check filename
-        if check_filename:
-            old_filename = filename = file
+        # Check filename
+        old_filename = filename = file
 
-            hits = 0
-            for regex in regex_list:
-                filename, hit = regex.subn("", filename)
-                hits += hit
+        hits = 0
+        for regex in regex_list:
+            filename, hit = regex.subn("", filename)
+            hits += hit
+        filename = filename.strip()
 
-            if hits:
-                print(f"Old filename: \"{old_filename}\" ||| New filename: \"{filename}\"")
-                if not dry_run:
-                    new_filepath = os.path.join(root, filename)
-                    os.rename(filepath, new_filepath)
+        if hits:
+            print(f"Old filename: \"{old_filename}\" ||| New filename: \"{filename}\"")
+            if not dry_run:
+                new_filepath = os.path.join(root, filename)
+                os.rename(filepath, new_filepath)
 
     
     # Check directory names
     for dir in d_names:
+        old_dirpath = os.path.join(root, dir)
+        print(f"Directory '{old_dirpath}' recursed")
         old_dirname = dirname = dir
         
         hits = 0
@@ -93,11 +96,13 @@ for root,d_names,f_names in os.walk(path, topdown=False):
                 new_dirpath = os.path.join(root, dirname)
                 os.rename(old_dirpath, new_dirpath)
 
-
+end = time()
 
 
 print("Files that produced errors:")
 for error in errors:
     print(error)
+
+print(f"Done. took {end - start} seconds")
 
 input('Press any key to continue')
