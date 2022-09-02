@@ -23,6 +23,9 @@ def main():
 
     path = r""
 
+    filetagcount = 0
+    filenamecount = 0
+    dircount = 0
     start = time()
     for root,d_names,f_names in os.walk(path, topdown=False):
         # Check files
@@ -52,15 +55,19 @@ def main():
                 ftag['album'] = album
                 save_tags = True
 
-            if not dry_run and save_tags:
+            if save_tags:
                 print(f"Old title: \"{original_title}\" ||| New title: \"{title}\"")
                 print(filepath)
-                ftag.save()
+                filetagcount += 1
+                if not dry_run:
+                    ftag.save()
+                
 
             # Check filename
             old_filename = filename = file
             if filename := clean(filename):
                 print(f"Old filename: \"{old_filename}\" ||| New filename: \"{filename}\"")
+                filenamecount += 1
                 if not dry_run:
                     new_filepath = os.path.join(root, filename)
                     os.rename(filepath, new_filepath)
@@ -74,6 +81,7 @@ def main():
             
             if dirname := clean(dirname):
                 print(f"Old directory name: \"{old_dirname}\" ||| New directory name: \"{dirname}\"")
+                dircount += 1
                 if not dry_run:
                     old_dirpath = os.path.join(root, dir)
                     new_dirpath = os.path.join(root, dirname)
@@ -86,6 +94,9 @@ def main():
         print(error)
 
     print(f"Done. took {end - start} seconds")
+    print(f"Directories renamed: {dircount}")
+    print(f"Files renamed: {filenamecount}")
+    print(f"Filetag edits: {filetagcount}")
 
     input('Press any key to continue')
 
