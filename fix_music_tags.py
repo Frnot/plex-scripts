@@ -1,9 +1,11 @@
-# v1.0
+# v1.1
 
 import os
 import re
 from time import time
 
+
+test = False
 dry_run = False
 errors = []
 
@@ -13,8 +15,11 @@ regex_list = [
     re.compile(r"\s*[({\[]\s*album\s+version\s*[)}\]]", re.IGNORECASE)  # "album version"
 ]
 
+if test:
+    import music_tag
+
 def main():
-    autoimport("music_tag")
+    autoinstall("music_tag")
 
     path = r""
 
@@ -37,43 +42,24 @@ def main():
 
             # Check title / filename
             original_title = title = ftag['title'].value
-            hits = 0
-            for regex in regex_list:
-                title, hit = regex.subn("", title)
-                hits += hit
-            title = title.strip()
-            if hits:
+            if title := clean(title):
                 ftag['title'] = title
                 save_tags = True
 
-            
             # Check Album tag
-            original_album = album = ftag['album'].value
-            hits = 0
-            for regex in regex_list:
-                album, hit = regex.subn("", album)
-                hits += hit
-            album = album.strip()
-            if hits:
+            album = ftag['album'].value
+            if album := clean(album):
                 ftag['album'] = album
                 save_tags = True
 
-
-            if save_tags:
+            if not dry_run and save_tags:
                 print(f"Old title: \"{original_title}\" ||| New title: \"{title}\"")
                 print(filepath)
                 ftag.save()
 
             # Check filename
             old_filename = filename = file
-
-            hits = 0
-            for regex in regex_list:
-                filename, hit = regex.subn("", filename)
-                hits += hit
-            filename = filename.strip()
-
-            if hits:
+            if filename := clean(filename):
                 print(f"Old filename: \"{old_filename}\" ||| New filename: \"{filename}\"")
                 if not dry_run:
                     new_filepath = os.path.join(root, filename)
@@ -86,12 +72,7 @@ def main():
             print(f"Directory '{old_dirpath}' recursed")
             old_dirname = dirname = dir
             
-            hits = 0
-            for regex in regex_list:
-                dirname, hit = regex.subn("", dirname)
-                hits += hit
-
-            if hits:
+            if dirname := clean(dirname):
                 print(f"Old directory name: \"{old_dirname}\" ||| New directory name: \"{dirname}\"")
                 if not dry_run:
                     old_dirpath = os.path.join(root, dir)
@@ -99,7 +80,6 @@ def main():
                     os.rename(old_dirpath, new_dirpath)
 
     end = time()
-
 
     print("Files that produced errors:")
     for error in errors:
@@ -110,7 +90,16 @@ def main():
     input('Press any key to continue')
 
 
-def autoimport(package):
+def clean(string):
+    hits = 0
+    for regex in regex_list:
+        string, hit = regex.subn("", string)
+        hits += hit
+
+    return string.strip() if hits else None
+
+
+def autoinstall(package):
     try:
         __import__(package)
     except ModuleNotFoundError as missing_pkg:
@@ -124,4 +113,19 @@ def autoimport(package):
             quit()
 
 
-main()
+def test_regex():
+    from unittest import TestCase
+    tc = TestCase()
+
+    tc.assertEqual(clean("Tattoo You (2009 Re-Mastered)"), "Tattoo You")
+    tc.assertEqual(clean("Test (explicit)"), "Test")
+    tc.assertEqual(clean("14 - If I Should Die Before I Wake (feat. Black Rob, Ice Cube, & Beanie Sigel) [2005 Remaster].flac"), "14 - If I Should Die Before I Wake (feat. Black Rob, Ice Cube, & Beanie Sigel).flac")
+    tc.assertEqual(clean("Test (2005 Remaster)"), "Test")
+    tc.assertEqual(clean("Test (Remastered 2011)"), "Test")
+    tc.assertEqual(clean("Test (album version) [Explicit]"), "Test")
+
+
+if test:
+    test_regex()
+else:
+    main()
