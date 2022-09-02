@@ -15,8 +15,8 @@ regex_list = [
     re.compile(r"\s*[({\[]\s*album\s+version\s*[)}\]]", re.IGNORECASE)  # "album version"
 ]
 
-#if test:
-    #import music_tag
+if test:
+    import music_tag
 
 def main():
     autoinstall("music_tag")
@@ -128,7 +128,5 @@ def test_regex():
 
 if test:
     test_regex()
-
-    
-    
-main()
+else:
+    main()
