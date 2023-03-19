@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "plex_scripts"
+version = "1.0"
+description = "Various media acquisition/organization automations for plex"
+readme = "README.md"
+
+requires-python = ">=3.6"
+dependencies = [
+    "tidal-dl",
+    "plexapi",
+    "music_tag",
+    "billboard",
+]
