@@ -1,2 +1,2 @@
 # plex_scripts
-hacking badly needed features into plex
+hacking badly (and some not so badly) needed features into plex
