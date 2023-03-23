@@ -10,8 +10,17 @@ readme = "README.md"
 
 requires-python = ">=3.6"
 dependencies = [
+    "aigpy @ git+https://github.com/Frnot/AIGPY_multiple_artist_tag",
     "tidal-dl",
     "plexapi",
     "music_tag",
-    "billboard",
+    "billboard.py",
+    "python-dotenv",
+]
+
+[tool.setuptools]
+py-modules = [
+    "billboard_playlist_generator", 
+    "billboard_scraper", 
+    "sort_playlist",
 ]
