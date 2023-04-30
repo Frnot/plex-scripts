@@ -71,11 +71,15 @@ def find_user_playlist(playlist_title):
 
 def find_track(trackname, artist=None):
     """Finds a track on spotify matching the given parameters"""
-    search = trackname.replace(" ", "%20")
+    search = trackname
     if artist:
-        search += "%20artist:" + artist.replace(" ", "%20")
+        search += " artist:" + artist
 
     result = spotify.search(q=search, type="track")["tracks"]["items"]
+
+    if not result:
+        return find_track(trackname)
+
     for track in result:
         if track["name"].lower() == trackname.lower():
             if artist:

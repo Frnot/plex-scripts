@@ -23,8 +23,15 @@ test = playlist.items()
 
 #trackpaths = playlist.download(savepath="downloads", keep_original_name=True)
 
-import plexapi.audio
 #plexapi.audio.Track.download()
+
+if result := spotify_engine.find_user_playlist(playlist.title):
+    print("Playlist already exists on spotify. Deleting")
+    spotify_engine.spotify.current_user_unfollow_playlist(result["id"])
+
+spotify_playlist = spotify_engine.spotify.user_playlist_create(user=spotify_engine.spotify.current_user()["id"],
+                                                               name=playlist.title,
+                                                               description=playlist.summary)
 
 errors = []
 spotify_tracks = []
@@ -34,7 +41,7 @@ for track in playlist.items():
         artist = track.originalTitle # artist
     else:
         artist = track.artist().title # album artist
-    print(f"Plex track: {track.title} - {artist}")
+    print(f"Plex track:    {track.title} - {artist}")
     spotify_track = spotify_engine.find_track(track.title, artist)
     if spotify_track:
         print(f"Spotify track: {spotify_track['name']} - {spotify_track['artists'][0]['name']}")
@@ -43,13 +50,10 @@ for track in playlist.items():
         print("Error: no Spotify track found")
         errors.append(f"{track.title} - {artist}")
 
-result = spotify_engine.find_user_playlist(playlist.title)
-
-if not result:
-    spotify_playlist = spotify_engine.spotify.user_playlist_create(user=spotify_engine.spotify.current_user()["id"],
-                                                                   name=playlist.title,
-                                                                   description=playlist.summary)
-else:
-    print("Playlist already exists on spotify")
-
 spotify_engine.spotify.playlist_add_items(spotify_playlist["id"], spotify_tracks)
+
+print("Errored tracks:")
+for track in errors:
+    print(track)
+
+print(f"'{playlist.title}' exported to Spotify: https://open.spotify.com/playlist/{spotify_playlist['id']}")
