@@ -40,5 +40,3 @@ try:
     plex = PlexServer(env["plexAddress"], env["authTokenId"])
 except KeyError:
     login()
-
-music_library : plexapi.audio.Audio = plex.library.section("Music")

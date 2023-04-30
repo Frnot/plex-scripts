@@ -10,16 +10,20 @@ readme = "README.md"
 
 requires-python = ">=3.6"
 dependencies = [
+    "python-dotenv",
+    "plexapi",
+    "spotipy",
     "aigpy @ git+https://github.com/Frnot/AIGPY_multiple_artist_tag",
     "tidal-dl",
-    "plexapi",
     "music_tag",
     "billboard.py",
-    "python-dotenv",
 ]
 
 [tool.setuptools]
 py-modules = [
+    "plex_engine.py",
+    "spotify_engine.py",
+    "playlist_exporter.py",
     "billboard_playlist_generator", 
     "billboard_scraper", 
     "sort_playlist",
