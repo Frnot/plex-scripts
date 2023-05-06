@@ -30,8 +30,8 @@ def login():
             print(f"Error: cannot find server with friendly name '{servername}'")
 
     with open(".env", "a+") as env_file:
-        env_file.write(f"plexAddress={plex._baseurl}\n")
-        env_file.write(f"authTokenId={plex._token}\n")
+        env_file.write(f"plexAddress=\"{plex._baseurl}\"\n")
+        env_file.write(f"authTokenId=\"{plex._token}\"\n")
 
 
 # "Singleton" module init

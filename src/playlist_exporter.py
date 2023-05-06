@@ -1,8 +1,8 @@
 import plexapi
 import plexapi.playlist
 
-import plex_engine
-import spotify_engine
+import engine.plex as plex_engine
+import engine.spotify as spotify_engine
 
 
 playlists: list[plexapi.playlist.Playlist] = plex_engine.plex.playlists()

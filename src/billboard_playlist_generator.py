@@ -1,5 +1,6 @@
 """Billboard top 40 pop playlist generator"""
 
+# TODO use plex engine
 # TODO: make sure tidal-dl retries on error
 
 import aigpy
@@ -10,7 +11,7 @@ from dotenv import dotenv_values
 from plexapi import *
 from plexapi.server import PlexServer
 
-from billboard_scraper import top_40_no_country, group_by_artist
+from src.billboard_scraper import top_40_no_country, group_by_artist
 
 env = dotenv_values(".env")
 plex = PlexServer(env["plexAddress"], env["authTokenId"])

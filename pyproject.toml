@@ -18,13 +18,3 @@ dependencies = [
     "music_tag",
     "billboard.py",
 ]
-
-[tool.setuptools]
-py-modules = [
-    "plex_engine.py",
-    "spotify_engine.py",
-    "playlist_exporter.py",
-    "billboard_playlist_generator", 
-    "billboard_scraper", 
-    "sort_playlist",
-]
