@@ -30,9 +30,16 @@ def login():
             print(f"Error: cannot find server with friendly name '{servername}'")
 
     with open(".env", "a+") as env_file:
-        env_file.write(f"plexAddress=\"{plex._baseurl}\"\n")
-        env_file.write(f"authTokenId=\"{plex._token}\"\n")
+        env_file.write(f"plexAddress={plex._baseurl}\n")
+        env_file.write(f"authTokenId={plex._token}\n")
 
+
+def track_artist(track: plexapi.playlist.Playable): #TODO: replace type with Track
+    #if track.originalTitle:
+    #    artist = track.originalTitle # artist
+    #else:
+    #    artist = track.artist().title # album artist
+    return track.originalTitle or track.artist().title
 
 # "Singleton" module init
 try:
