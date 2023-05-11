@@ -2,9 +2,6 @@ import plexapi
 import plexapi.playlist
 
 import engine.plex as plex_engine
-import engine.spotify as spotify_engine
-import engine.youtube as youtube_engine
-
 
 
 def main():
@@ -24,8 +21,8 @@ def main():
     print("\n")
 
     export_options = {
-        "Local (download)":"test",
-        "Spotify":"test",
+        "Local (download)":download,
+        "Spotify":export_to_spotify,
         "Youtube":export_to_youtube,
     }
 
@@ -46,6 +43,8 @@ def download():
 
 
 def export_to_youtube(playlist):
+    import engine.youtube as youtube_engine
+
     title = playlist.title
     items = [(track.title, track.originalTitle or track.artist().title) for track in playlist.items()]
 
@@ -73,6 +72,8 @@ def export_to_youtube(playlist):
 
 
 def export_to_spotify():
+    import engine.spotify as spotify_engine
+
     if result := spotify_engine.find_user_playlist(playlist.title):
         print("Playlist already exists on spotify. Deleting")
         spotify_engine.spotify.current_user_unfollow_playlist(result["id"])
