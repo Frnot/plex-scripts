@@ -1,6 +1,6 @@
 import spotipy
+from dotenv import dotenv_values, set_key
 from spotipy.oauth2 import SpotifyOAuth
-from dotenv import dotenv_values
 
 
 def login():
@@ -28,8 +28,9 @@ def login():
             client_id = input("Enter spotify client_id: ")
         while not client_secret:
             client_secret = input("Enter spotify client_secret: ")
-        while not redirect_uri:
-            redirect_uri = input("Enter spotify redirect_uri: ")
+            
+        redirect_uri_input = input("Enter spotify redirect_uri (or enter for default): ")
+        redirect_uri = redirect_uri_input or "http://localhost:8080"
         
         try:
             oauth = SpotifyOAuth(scope=scope, 
@@ -42,11 +43,9 @@ def login():
         except spotipy.SpotifyOauthError:
             print("Error: Unauthorized.")
 
-    with open(".env", "a+") as env_file:
-        pass
-        env_file.write(f"spotify_client_id={client_id}\n")
-        env_file.write(f"spotify_client_secret={client_secret}\n")
-        env_file.write(f"spotify_redirect_uri={redirect_uri}\n")
+    set_key(dotenv_path=".env", key_to_set="spotify_client_id", value_to_set=client_id)
+    set_key(dotenv_path=".env", key_to_set="spotify_client_secret", value_to_set=client_secret)
+    set_key(dotenv_path=".env", key_to_set="spotify_redirect_uri", value_to_set=redirect_uri)
 
     return spotify
 

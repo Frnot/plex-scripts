@@ -1,6 +1,6 @@
 import plexapi
 import plexapi.audio
-from dotenv import dotenv_values
+from dotenv import dotenv_values, set_key
 from plexapi import *
 from plexapi.server import PlexServer
 
@@ -29,9 +29,8 @@ def login():
         except plexapi.exceptions.NotFound:
             print(f"Error: cannot find server with friendly name '{servername}'")
 
-    with open(".env", "a+") as env_file:
-        env_file.write(f"plexAddress={plex._baseurl}\n")
-        env_file.write(f"authTokenId={plex._token}\n")
+    set_key(dotenv_path=".env", key_to_set="plexAddress", value_to_set=plex._baseurl)
+    set_key(dotenv_path=".env", key_to_set="authTokenId", value_to_set=plex._token)
 
 
 def track_artist(track: plexapi.playlist.Playable): #TODO: replace type with Track

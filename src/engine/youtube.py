@@ -1,7 +1,7 @@
 import os
 import pickle
 
-from dotenv import dotenv_values
+from dotenv import dotenv_values, set_key
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -53,9 +53,8 @@ def login(): # Todo: add better verif to this
         with open(youtube_token_filename, "wb") as token:
             pickle.dump(creds, token)
 
-        with open(".env", "a+") as env_file: # TODO: update else add if not exist
-            env_file.write(f"youtube_client_id={client_id}\n")
-            env_file.write(f"youtube_client_secret={client_secret}\n")
+        set_key(dotenv_path=".env", key_to_set="youtube_client_id", value_to_set=client_id)
+        set_key(dotenv_path=".env", key_to_set="youtube_client_secret", value_to_set=client_secret)
 
     return build(api_service_name, api_version, credentials=creds)
 
