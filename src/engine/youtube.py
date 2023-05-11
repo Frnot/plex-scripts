@@ -91,7 +91,7 @@ def create_playlist(playlist_name, playlist_items):
             "id": "UExyeExfWThLVWNlb1ZTTjhTcF9aWVdKdTZtWkl6SklVOC4wOTA3OTZBNzVEMTUzOTMy", #item.id
             "snippet": {
                 "playlistId": "PLrxL_Y8KUceoVSN8Sp_ZYWJu6mZIzJIU8", # item.snipped.playlistId
-                "position": 5,
+                "position": 4,
                 "resourceId": {
                     "kind": "youtube#video",
                     "videoId": "2xWkATdMQms" # item.snippet.resourceId.videoId
@@ -102,6 +102,26 @@ def create_playlist(playlist_name, playlist_items):
     response = request.execute()
 
     print()
+
+
+def add_video_to_playlist(playlist_id, video_id, position=None):
+    body={
+        "snippet": {
+            "playlistId": playlist_id, 
+            "resourceId": {
+                "kind": "youtube#video",
+                "videoId": video_id
+            }
+        }
+    }
+    if position:
+        body["snippet"]["position"] = position
+
+    request = youtube.playlistItem().insert(
+        part="snippet",
+        body=body)
+
+    request.execute()
 
 
 def playlist_url(playlist_id) -> str:
