@@ -2,6 +2,8 @@ import plexapi
 import plexapi.playlist
 
 import engine.plex as plex_engine
+import engine.spotify as spotify_engine
+import engine.youtube as youtube_engine
 
 
 def main():
@@ -9,20 +11,24 @@ def main():
 
     for idx, p in enumerate(playlists, start=1):
         print(f"{idx}: {p.title}")
-    playlist = tui_select(playlists, "playlist")
+    plex_playlist = tui_select(playlists, "playlist")
 
-    test = playlist.items()
+    playlist = {
+        "title": plex_playlist.title,
+        "description": plex_playlist.summary
+    }
+    playlist["items"] = [(track.title, track.originalTitle or track.artist().title) for track in plex_playlist.items()]
 
     print("First 10 playlist items:")
-    for idx,track in enumerate(playlist.items()[:10], start=1):
+    for idx,(track,artist) in enumerate(playlist["items"][:10], start=1):
         track: plexapi.playlist.Playable
-        print(f"{idx}: {track.title} - {track.originalTitle or track.artist().title}")
+        print(f"{idx}: {track} - {artist}")
 
     print("\n")
 
     export_options = {
-        "Local (download)":download,
-        "Spotify":export_to_spotify,
+        "Local (download)":"test",
+        "Spotify":"test",
         "Youtube":export_to_youtube,
     }
 
@@ -43,37 +49,21 @@ def download():
 
 
 def export_to_youtube(playlist):
-    import engine.youtube as youtube_engine
-
-    title = playlist.title
-    items = [(track.title, track.originalTitle or track.artist().title) for track in playlist.items()]
-
-    import pyyoutube
-    playlists: list[pyyoutube.Playlist] = youtube_engine.youtube.get_playlists(mine=True).items
-    playlist = playlists[0]
-
-    test = youtube_engine.youtube.get_playlist_items(playlist_id=playlist.id, count=100)
-    for id in [v.contentDetails.videoId for v in test]:
-        print(f"https://www.youtube.com/watch?v={id}")
-
     youtube_tracks = []
-    for title, artist in items:
-        youtube_tracks.append(youtube_engine.find_track(title, artist))
+    for title, artist in playlist["items"]:
+        youtube_tracks.append(youtube_engine.search(f"{title} {artist}")[0])
 
-    if playlist := youtube_engine.find_user_playlist(title):
-        pass # edit playlist
-    else:
-        yt_playlist = youtube_engine.create_playlist(title, youtube_tracks)
+    url = youtube_engine.create_playlist(playlist_name=playlist["title"], 
+                                   playlist_items=youtube_tracks, 
+                                   playlist_description=playlist["description"])
 
     print("Done.")
-    print(yt_playlist)
+    print(url)
 
 
 
 
 def export_to_spotify():
-    import engine.spotify as spotify_engine
-
     if result := spotify_engine.find_user_playlist(playlist.title):
         print("Playlist already exists on spotify. Deleting")
         spotify_engine.spotify.current_user_unfollow_playlist(result["id"])
@@ -107,7 +97,7 @@ def export_to_spotify():
 
 def tui_select(options, option_type):
     while True:
-        choice = input(f"Select number of {option_type}: ")
+        choice = input(f"Select index of {option_type}: ")
         try:
             return options[int(choice)-1]
         except (IndexError, ValueError):
