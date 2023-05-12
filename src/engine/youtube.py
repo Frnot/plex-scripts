@@ -1,7 +1,8 @@
 import os
 import pickle
+from urllib.parse import parse_qs, urlparse
 
-from urllib.parse import urlparse, parse_qs
+import pytube
 from dotenv import dotenv_values, set_key
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -101,7 +102,7 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
 
             break
     else: # playlist doesn't exist
-        print("Creating playlist... ",end="")
+        print("Creating playlist...",end="")
         response = create_empty_playlist(playlist_name, description=playlist_description)
         print("Done.")
         url = playlist_url(response["id"])
@@ -185,9 +186,11 @@ def update_playlist_item_position(playlist_id, playlist_item_id, position):
     response = request.execute()
 
 
+def noapi_search(search):
+    results = pytube.Search(search).results
+    return results[0].video_id
 
-# this is a very expsive api option
-#TODO: explore non-api alternatives
+
 # 100 units
 def search(search, maxResults=1):
     results = youtube.search().list(

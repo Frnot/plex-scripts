@@ -52,7 +52,7 @@ def export_to_youtube(playlist):
     import engine.youtube as youtube_engine
     youtube_tracks = []
     for title, artist in playlist["items"]:
-        youtube_tracks.append(youtube_engine.search(f"{title} {artist}")[0])
+        youtube_tracks.append(youtube_engine.noapi_search(f"{title} {artist}"))
 
     url = youtube_engine.create_playlist(playlist_name=playlist["title"], 
                                    playlist_items=youtube_tracks, 

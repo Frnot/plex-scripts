@@ -13,6 +13,7 @@ dependencies = [
     "python-dotenv",
     "plexapi",
     "spotipy",
+    "pytube",
     "google-api-python-client",
     "google-auth-httplib2",
     "google-auth-oauthlib",
