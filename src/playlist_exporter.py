@@ -2,8 +2,8 @@ import plexapi
 import plexapi.playlist
 
 import engine.plex as plex_engine
-import engine.spotify as spotify_engine
-import engine.youtube as youtube_engine
+
+
 
 
 def main():
@@ -49,6 +49,7 @@ def download():
 
 
 def export_to_youtube(playlist):
+    import engine.youtube as youtube_engine
     youtube_tracks = []
     for title, artist in playlist["items"]:
         youtube_tracks.append(youtube_engine.search(f"{title} {artist}")[0])
@@ -57,34 +58,33 @@ def export_to_youtube(playlist):
                                    playlist_items=youtube_tracks, 
                                    playlist_description=playlist["description"])
 
-    print("Done.")
-    print(url)
+    print(f"Playlist '{playlist['title']}' successfully exported to youtube:\n{url}")
 
 
 
 
-def export_to_spotify():
-    if result := spotify_engine.find_user_playlist(playlist.title):
+def export_to_spotify(playlist):
+    import engine.spotify as spotify_engine
+    if result := spotify_engine.find_user_playlist(playlist["title"]):
         print("Playlist already exists on spotify. Deleting")
         spotify_engine.spotify.current_user_unfollow_playlist(result["id"])
 
     spotify_playlist = spotify_engine.spotify.user_playlist_create(user=spotify_engine.spotify.current_user()["id"],
-                                                                name=playlist.title,
-                                                                description=playlist.summary)
+                                                                name=playlist["title"],
+                                                                description=playlist["description"])
 
     errors = []
     spotify_tracks = []
-    for track in playlist.items():
+    for title,artist in playlist["items"]:
         #track.download(savepath=r"C:\Users\Frnot\Downloads", keep_original_name=True)
-        artist = track.originalTitle or track.artist().title
-        print(f"Plex track:    {track.title} - {artist}")
-        spotify_track = spotify_engine.find_track(track.title, artist)
+        print(f"Plex track:    {title} - {artist}")
+        spotify_track = spotify_engine.find_track(title, artist)
         if spotify_track:
             print(f"Spotify track: {spotify_track['name']} - {spotify_track['artists'][0]['name']}")
             spotify_tracks.append(spotify_track["uri"])
         else:
             print("Error: no Spotify track found")
-            errors.append(f"{track.title} - {artist}")
+            errors.append(f"{title} - {artist}")
 
     spotify_engine.spotify.playlist_add_items(spotify_playlist["id"], spotify_tracks)
 
