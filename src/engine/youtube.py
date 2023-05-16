@@ -1,8 +1,9 @@
 import functools
 import os
 import pickle
+from urllib.parse import parse_qs, urlparse
 
-from urllib.parse import urlparse, parse_qs
+import pytube
 from dotenv import dotenv_values, set_key
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -149,11 +150,16 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
 
             break
     else: # playlist doesn't exist
+        print("Creating playlist...",end="")
         response = create_empty_playlist(playlist_name, description=playlist_description)
+        print("Done.")
         url = playlist_url(response["id"])
 
+        print("Adding items to playlist",end="")
         for item_id in playlist_items:
             add_video_to_playlist(playlist_id=response['id'], video_id=item_id)
+            print(".",end="")
+        print("Done.")
 
     return url
 
@@ -232,9 +238,11 @@ def update_playlist_item_position(playlist_id, playlist_item_id, position):
     response = request.execute()
 
 
+def noapi_search(search):
+    results = pytube.Search(search).results
+    return results[0].video_id
 
-# this is a very expsive api option
-#TODO: explore non-api alternatives
+
 # 100 units
 def search(search, maxResults=1):
     results = youtube.search().list(
@@ -261,21 +269,21 @@ def video_id(video_url) -> str:
 youtube = login()
 
 
-
 #TODO: add a decorator that keeps track of quota (catches the following error) and rotates credentials if needed
+
 
 """
 Exception has occurred: HttpError
-<HttpError 403 when requesting ~ returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
-  File "C:\Users\Frnot\Documents\github\plex-scripts\src\engine\youtube.py", line 191, in search
+<HttpError 403 when requesting ~ returned The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.. Details: [{'message': 'The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]>
+  File C:sers\Frnot\Documents\github\plex-scripts\src\engine\youtube.py, line 191, in search
     ).execute()
       ^^^^^^^^^
-  File "C:\Users\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py", line 55, in export_to_youtube
-    youtube_tracks.append(youtube_engine.search(f"{title} {artist}")[0])
+  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 55, in export_to_youtube
+    youtube_tracks.append(youtube_engine.search(f{title} {artist})[0])
                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py", line 40, in main
+  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 40, in main
     export_options[location](playlist)
-  File "C:\Users\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py", line 109, in <module>
+  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 109, in <module>
     main()
-googleapiclient.errors.HttpError: <HttpError 403 when requesting ~ returned "The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.". Details: "[{'message': 'The request cannot be completed because you have exceeded your <a href="/youtube/v3/getting-started#quota">quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]">
+googleapiclient.errors.HttpError: <HttpError 403 when requesting ~ returned The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.. Details: [{'message': 'The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]>
 """
