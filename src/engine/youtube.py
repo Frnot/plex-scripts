@@ -1,3 +1,4 @@
+import functools
 import os
 import pickle
 
@@ -8,8 +9,56 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 
-#TODO: add support for multiple client.json files to automatically rotate projects when quota is reached
-def login(): # Todo: add better verif to this
+
+def login():
+    SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+    api_service_name = "youtube"
+    api_version = "v3"
+    youtube_token_filename = "youtube_token.pkl"
+    env = dotenv_values(".env")
+
+    global creds
+    creds = None
+    if os.path.exists(youtube_token_filename):
+        with open(youtube_token_filename, "rb") as token:
+            creds = pickle.load(token)
+
+    if not creds or any([not cred.valid for cred in creds]):
+        if creds and all([cred.expired and cred.refresh_token for cred in creds]):
+            for cred in creds:
+                cred.refresh(Request())
+        else:
+            creds = []
+            for filename in [file for file in os.listdir(os.getcwd()) if file.endswith('.json')]:
+                flow = InstalledAppFlow.from_client_config(filename, scopes=SCOPES)
+                creds.append(flow.run_local_server(port=0))
+
+        with open(youtube_token_filename, "wb") as token_file:
+            pickle.dump(creds, token_file)
+
+    
+
+
+def manage_api(func):
+    api_service_name = "youtube"
+    api_version = "v3"
+
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        try:
+            result = func(*args, **kwargs)
+        except:
+            global creds
+            cred = next(creds)
+            build(api_service_name, api_version, credentials=cred)
+            result = func(*args, **kwargs)
+        return result
+    return wrapped
+
+
+
+def oldlogin(): # Todo: add better verif to this
     SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     api_service_name = "youtube"
@@ -110,6 +159,7 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
 
 
 # 50 units
+@manage_api
 def create_empty_playlist(title, description=None):
     body = {
         "snippet": {
@@ -130,6 +180,7 @@ def create_empty_playlist(title, description=None):
 
 
 # 50 units
+@manage_api
 def add_video_to_playlist(playlist_id, video_id, position=None):
     body={
         "snippet": {
@@ -151,6 +202,7 @@ def add_video_to_playlist(playlist_id, video_id, position=None):
 
 
 # 50 units
+@manage_api
 def remove_video_from_playlist(playlist_item_id):
     request = youtube.playlistItems().delete(
         id=playlist_item_id
@@ -160,6 +212,7 @@ def remove_video_from_playlist(playlist_item_id):
 
 #TODO: use item dictionary as argument
 # 50 units
+@manage_api
 def update_playlist_item_position(playlist_id, playlist_item_id, position):
     request = youtube.playlistItems().update(
         part="snippet",
