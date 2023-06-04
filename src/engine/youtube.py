@@ -169,6 +169,7 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
                     case "del":
                         remove_video_from_playlist(video_playlist_id_map[op[1]])
                     case "mov":
+                        #TODO: mov indexes are occasionally wrong (test api call functionality)
                         update_playlist_item_position(playlist["id"], video_playlist_id_map[op[1]], op[1], op[2]-1)
                     case "add":
                         add_video_to_playlist(playlist["id"], op[1], op[2]+1)
@@ -279,14 +280,14 @@ def update_playlist_item_position(playlist_id, playlist_item_id, video_id, posit
     response = request.execute()
 
 
-def noapi_search(search):
+def search(search):
     results = pytube.Search(search).results
     return results[0].video_id
 
 
 # 100 units
 @manage_api
-def search(search, maxResults=1):
+def api_search(search, maxResults=1):
     results = youtube.search().list(
         part="snippet",
         q=search,
