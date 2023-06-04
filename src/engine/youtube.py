@@ -8,15 +8,21 @@ from dotenv import dotenv_values, set_key
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
+from util.sorting import compute_sorting_ops
+
+
+SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+api_service_name = "youtube"
+api_version = "v3"
+youtube_token_filename = "youtube_token.pkl"
+
+youtube = None
 
 
 def login():
-    SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-    api_service_name = "youtube"
-    api_version = "v3"
-    youtube_token_filename = "youtube_token.pkl"
     env = dotenv_values(".env")
 
     global creds
@@ -26,33 +32,53 @@ def login():
             creds = pickle.load(token)
 
     if not creds or any([not cred.valid for cred in creds]):
+        """
         if creds and all([cred.expired and cred.refresh_token for cred in creds]):
             for cred in creds:
                 cred.refresh(Request())
         else:
             creds = []
             for filename in [file for file in os.listdir(os.getcwd()) if file.endswith('.json')]:
-                flow = InstalledAppFlow.from_client_config(filename, scopes=SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(filename, scopes=SCOPES)
                 creds.append(flow.run_local_server(port=0))
+        """
+        try:
+            for cred in creds:
+                cred.refresh(Request())
+        except Exception:
+            creds = []
+            for filename in [file for file in os.listdir(os.getcwd()) if file.endswith('.json')]:
+                flow = InstalledAppFlow.from_client_secrets_file(filename, scopes=SCOPES)
+                creds.append(flow.run_local_server(port=0))
+
 
         with open(youtube_token_filename, "wb") as token_file:
             pickle.dump(creds, token_file)
 
+
+    creds = iter(creds)
+    return build(api_service_name, api_version, credentials=next(creds))
+
     
 
-
+#TODO: when rotating tokens, rewrite pickle file with new order
 def manage_api(func):
-    api_service_name = "youtube"
-    api_version = "v3"
-
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
+        global creds
+        global youtube
+        if not youtube:
+            youtube = login()
+
         try:
             result = func(*args, **kwargs)
-        except:
-            global creds
+        except HttpError as e:
+            if not e.code or e.code != 403:
+                raise e
+            print(e)
+            print("\n\nRotating youtube API credentials\n\n")
             cred = next(creds)
-            build(api_service_name, api_version, credentials=cred)
+            youtube = build(api_service_name, api_version, credentials=cred)
             result = func(*args, **kwargs)
         return result
     return wrapped
@@ -119,34 +145,31 @@ def find_user_playlist(name):
 
 
 def create_playlist(playlist_name, playlist_items, playlist_description=None):
-    existing_playlists = youtube.playlists().list(part="snippet",mine=True).execute()['items']
+    existing_playlists = list_playlists()
     for playlist in existing_playlists:
         # if playlist exists:
         if playlist['snippet']['title'].lower() == playlist_name.lower():
             url = playlist_url(playlist["id"])
 
             #TODO: if description is specified and existing description doesnt match
-
-            results = youtube.playlistItems().list(part="snippet,id",
-                    playlistId=playlist["id"],
-                    maxResults=50, #TODO: use pageToken to retrieve more than 50 items https://developers.google.com/youtube/v3/docs/playlistItems/list
-                ).execute()
-            
+            results = list_playlist_items(playlist)
             existing_items = results["items"]
-            existing_ids = [i["snippet"]["resourceId"]["videoId"] for i in existing_items]
-            existing_id_pairs = [(i["snippet"]["resourceId"]["videoId"], i["id"]) for i in existing_items]
+            existing_ids = [i["snippet"]["resourceId"]["videoId"] for i in existing_items] # video id
+            video_playlist_id_map = dict()
+            for i in existing_items:
+                video_playlist_id_map[i["snippet"]["resourceId"]["videoId"]] = i["id"]
 
-            # Remove items
-            for id, playlist_item_id in existing_id_pairs:
-                if id not in playlist_items:
-                    remove_video_from_playlist(playlist_item_id)
+            updated_ids, ops = compute_sorting_ops(existing_ids, playlist_items) # op instructions are zero indexed
 
-            # Add missing items
-            for item_id in playlist_items:
-                if item_id in existing_ids: # TODO: maintain playlist order efficiently
-                    continue
-                else:
-                    add_video_to_playlist(playlist["id"], item_id)
+            for op in ops:
+                match op[0]:
+                    case "del":
+                        remove_video_from_playlist(video_playlist_id_map[op[1]])
+                    case "mov":
+                        update_playlist_item_position(playlist["id"], video_playlist_id_map[op[1]], op[1], op[2]-1)
+                    case "add":
+                        add_video_to_playlist(playlist["id"], op[1], op[2]+1)
+
 
             break
     else: # playlist doesn't exist
@@ -162,6 +185,21 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
         print("Done.")
 
     return url
+
+
+@manage_api
+def list_playlists():
+    return youtube.playlists().list(part="snippet",mine=True).execute()['items']
+
+
+@manage_api
+def list_playlist_items(playlist):
+    results = youtube.playlistItems().list(
+        part="snippet,id",
+        playlistId=playlist["id"],
+        maxResults=50, #TODO: use pageToken to retrieve more than 50 items https://developers.google.com/youtube/v3/docs/playlistItems/list
+    ).execute()
+    return results
 
 
 # 50 units
@@ -219,7 +257,7 @@ def remove_video_from_playlist(playlist_item_id):
 #TODO: use item dictionary as argument
 # 50 units
 @manage_api
-def update_playlist_item_position(playlist_id, playlist_item_id, position):
+def update_playlist_item_position(playlist_id, playlist_item_id, video_id, position):
     request = youtube.playlistItems().update(
         part="snippet",
         body={
@@ -229,7 +267,7 @@ def update_playlist_item_position(playlist_id, playlist_item_id, position):
                 "position": position,
                 "resourceId": {
                     "kind": "youtube#video",
-                    #"videoId": "2xWkATdMQms" # item.snippet.resourceId.videoId
+                    "videoId": video_id # item.snippet.resourceId.videoId
                 }
             }
         }
@@ -244,6 +282,7 @@ def noapi_search(search):
 
 
 # 100 units
+@manage_api
 def search(search, maxResults=1):
     results = youtube.search().list(
         part="snippet",
