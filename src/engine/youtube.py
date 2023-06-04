@@ -57,6 +57,7 @@ def login():
 
 
     creds = iter(creds)
+
     return build(api_service_name, api_version, credentials=next(creds))
 
     
@@ -161,7 +162,9 @@ def create_playlist(playlist_name, playlist_items, playlist_description=None):
 
             updated_ids, ops = compute_sorting_ops(existing_ids, playlist_items) # op instructions are zero indexed
 
+            print("Updating playlist",end="")
             for op in ops:
+                print(".",end="")
                 match op[0]:
                     case "del":
                         remove_video_from_playlist(video_playlist_id_map[op[1]])
@@ -306,23 +309,3 @@ def video_id(video_url) -> str:
 
 # "Singleton" module init
 youtube = login()
-
-
-#TODO: add a decorator that keeps track of quota (catches the following error) and rotates credentials if needed
-
-
-"""
-Exception has occurred: HttpError
-<HttpError 403 when requesting ~ returned The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.. Details: [{'message': 'The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]>
-  File C:sers\Frnot\Documents\github\plex-scripts\src\engine\youtube.py, line 191, in search
-    ).execute()
-      ^^^^^^^^^
-  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 55, in export_to_youtube
-    youtube_tracks.append(youtube_engine.search(f{title} {artist})[0])
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 40, in main
-    export_options[location](playlist)
-  File C:sers\Frnot\Documents\github\plex-scripts\src\playlist_exporter.py, line 109, in <module>
-    main()
-googleapiclient.errors.HttpError: <HttpError 403 when requesting ~ returned The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.. Details: [{'message': 'The request cannot be completed because you have exceeded your <a href=/youtube/v3/getting-started#quota>quota</a>.', 'domain': 'youtube.quota', 'reason': 'quotaExceeded'}]>
-"""
