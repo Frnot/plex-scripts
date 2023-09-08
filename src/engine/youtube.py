@@ -74,7 +74,7 @@ def manage_api(func):
         try:
             result = func(*args, **kwargs)
         except HttpError as e:
-            if not e.code or e.code != 403:
+            if not hasattr(e, "code") or e.code != 403:
                 raise e
             print(e)
             print("\n\nRotating youtube API credentials\n\n")
@@ -239,8 +239,8 @@ def add_video_to_playlist(playlist_id, video_id, position=None):
             }
         }
     }
-    if position:
-        body["snippet"]["position"] = position
+    #if position:
+    #    body["snippet"]["position"] = position
 
     request = youtube.playlistItems().insert(
         part="snippet",
